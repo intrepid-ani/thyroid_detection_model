@@ -1,0 +1,5 @@
+/.venv
+/__pycache__
+
+git remote add origin https://github.com/intrepid-ani/
+git branch -M main
