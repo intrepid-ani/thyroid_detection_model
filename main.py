@@ -4,6 +4,31 @@ import pandas as pd
 import pickle
 from sklearn.preprocessing import MinMaxScaler
 
+import streamlit as st
+
+# Initialize session state
+if "show_qr" not in st.session_state:
+    st.session_state.show_qr = False  # Initially, show the button
+
+col1, col2 = st.columns([8, 2])  # Layout to align on top-right
+
+with col2:
+    if not st.session_state.show_qr:
+        # Show Buy Me a Coffee button
+        if st.button("☕ Buy Me a Coffee", key="buy_coffee", help="Click to pay directly"):
+            st.session_state.show_qr = True  # Toggle state to show QR code
+            st.rerun()  # Refresh the UI
+        
+    else:
+        # Show QR Code for direct payment
+        st.image("qr_code.png", caption="Scan to Pay", width=150)  # Replace with your QR code image
+        st.success("Scan the QR code to make a payment.")
+
+        # Optional: Add a "Back" button to restore the original state
+        if st.button("⬅️ Back", key="back"):
+            st.session_state.show_qr = False
+            st.rerun()
+
 # Load all models and scaler from the pickle file
 with open('models_accuracy_scale.pkl', 'rb') as f:
     model_data = pickle.load(f)
