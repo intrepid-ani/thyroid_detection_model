@@ -1,4 +1,4 @@
-# Thyroid Detection App
+# [Thyroid Detection App](https://thyroiddetedtion.streamlit.app/)
 
 ## Introduction
 The **Thyroid Detection App** is a web-based application developed using **Streamlit** that helps in predicting thyroid conditions based on user input. The application leverages machine learning models trained on thyroid-related medical data to provide an accurate diagnosis.
