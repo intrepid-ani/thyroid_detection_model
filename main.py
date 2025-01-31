@@ -2,9 +2,45 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import pickle
-from sklearn.preprocessing import MinMaxScaler
+# from sklearn.preprocessing import MinMaxScaler
 
-import streamlit as st
+# Load models, scaler, and label encoder
+with open('models_accuracy_scale.pkl', 'rb') as f:
+    model_data = pickle.load(f)
+
+scaler = model_data.get('scaler', None)
+label_encoder = model_data.get('label_encoder', None)  # Extract LabelEncoder
+
+# Mapping from character labels to user-readable labels
+target_mapping = {
+    '-': 'Negative', 'S': 'Hyperthyroid', 'F': 'Hypothyroid',
+    'AK': 'Mixed', 'R': 'Other', 'I': 'Negative', 'M': 'Hyperthyroid',
+    'N': 'Hypothyroid', 'G': 'Negative', 'K': 'Other', 'A': 'Hyperthyroid',
+    'L': 'Hyperthyroid', 'MK': 'Mixed', 'Q': 'Other', 'J': 'Negative',
+    'C|I': 'Mixed', 'O': 'Hyperthyroid', 'LJ': 'Hyperthyroid',
+    'H|K': 'Mixed', 'GK': 'Negative', 'MI': 'Hypothyroid', 'KJ': 'Other',
+    'P': 'Hyperthyroid', 'FK': 'Hypothyroid', 'B': 'Hyperthyroid',
+    'GI': 'Negative', 'C': 'Mixed', 'GKJ': 'Other', 'OI': 'Hypothyroid',
+    'D|R': 'Mixed', 'D': 'Negative', 'E': 'Other'
+}
+
+def convert_prediction_to_readable(encoded_prediction):
+    """Converts numeric model output to character and then to a human-readable label."""
+    if label_encoder:
+        try:
+            # Convert numeric to character label
+            char_label = label_encoder.inverse_transform([encoded_prediction])[0]
+            # Convert character label to user-readable label
+            readable_label = target_mapping.get(char_label, "Unknown")
+            return char_label, readable_label
+        except Exception as e:
+            st.error(f"Error decoding prediction: {e}")
+            return "Error", "Unknown"
+    else:
+        st.error("LabelEncoder not found in the model file.")
+        return "Error", "Unknown"
+
+# Streamlit UI
 
 # Initialize session state
 if "show_qr" not in st.session_state:
@@ -15,7 +51,7 @@ col1, col2 = st.columns([8, 2])  # Layout to align on top-right
 with col2:
     if not st.session_state.show_qr:
         # Show Buy Me a Coffee button
-        if st.button("☕ Buy Me a Coffee", key="buy_coffee", help="Click to pay directly"):
+        if st.button("Donate!", key="buy_coffee", help="Click to pay directly"):
             st.session_state.show_qr = True  # Toggle state to show QR code
             st.rerun()  # Refresh the UI
         
@@ -29,53 +65,30 @@ with col2:
             st.session_state.show_qr = False
             st.rerun()
 
-# Load all models and scaler from the pickle file
-with open('models_accuracy_scale.pkl', 'rb') as f:
-    model_data = pickle.load(f)
+st.markdown("<div style='text-align: left;'><a href='https://github.com/intrepid-ani/thyroid_detection_model' target='_blank'><img src='https://img.shields.io/badge/GitHub-Repo-blue?logo=github'></a></div>", unsafe_allow_html=True)
 
-# Load the scaler used during training
-scaler = model_data.get('scaler', MinMaxScaler())
 
-# Mapping raw predictions to human-readable labels
-target_mapping = {
-    '-': 'Negative', 'S': 'Hyperthyroid', 'F': 'Hypothyroid',
-    'AK': 'Mixed', 'R': 'Other', 'I': 'Negative', 'M': 'Hyperthyroid',
-    'N': 'Hypothyroid', 'G': 'Negative', 'K': 'Other', 'A': 'Hyperthyroid',
-    'L': 'Hyperthyroid', 'MK': 'Mixed', 'Q': 'Other', 'J': 'Negative',
-    'C|I': 'Mixed', 'O': 'Hyperthyroid', 'LJ': 'Hyperthyroid',
-    'H|K': 'Mixed', 'GK': 'Negative', 'MI': 'Hypothyroid', 'KJ': 'Other',
-    'P': 'Hyperthyroid', 'FK': 'Hypothyroid', 'B': 'Hyperthyroid',
-    'GI': 'Negative', 'C': 'Mixed', 'GKJ': 'Other', 'OI': 'Hypothyroid',
-    'D|R': 'Mixed', 'D': 'Negative', 'E': 'Other'
-}
-
-def convert_prediction_to_readable(raw_prediction):
-    """Converts raw model output to human-readable categories."""
-    return target_mapping.get(raw_prediction, 'Unknown')
-
-# Streamlit UI
 st.title("Thyroid Prediction App")
-
-# User Input Form
 st.header("Enter Patient Details")
 
+# User Input Form
 age = st.number_input("Age", min_value=1, max_value=120, value=45)
 sex = st.selectbox("Sex", ["Male", "Female"], index=1)
 
-on_thyroxine = st.selectbox("On Thyroxine", ["Yes", "No"], index=0)
-query_on_thyroxine = st.selectbox("Query on Thyroxine", ["Yes", "No"], index=1)
-on_antithyroid_meds = st.selectbox("On Antithyroid Meds", ["Yes", "No"], index=1)
-sick = st.selectbox("Sick", ["Yes", "No"], index=0)
-pregnant = st.selectbox("Pregnant", ["Yes", "No"], index=1)
-thyroid_surgery = st.selectbox("Thyroid Surgery", ["Yes", "No"], index=0)
-I131_treatment = st.selectbox("I131 Treatment", ["Yes", "No"], index=0)
-query_hypothyroid = st.selectbox("Query Hypothyroid", ["Yes", "No"], index=0)
-query_hyperthyroid = st.selectbox("Query Hyperthyroid", ["Yes", "No"], index=1)
-lithium = st.selectbox("Lithium", ["Yes", "No"], index=1)
-goitre = st.selectbox("Goitre", ["Yes", "No"], index=0)
-tumor = st.selectbox("Tumor", ["Yes", "No"], index=1)
-hypopituitary = st.selectbox("Hypopituitary", ["Yes", "No"], index=1)
-psych = st.selectbox("Psych", ["Yes", "No"], index=1)
+on_thyroxine = st.selectbox("On Thyroxine", ["Yes", "No"])
+query_on_thyroxine = st.selectbox("Query on Thyroxine", ["Yes", "No"])
+on_antithyroid_meds = st.selectbox("On Antithyroid Meds", ["Yes", "No"])
+sick = st.selectbox("Sick", ["Yes", "No"])
+pregnant = st.selectbox("Pregnant", ["Yes", "No"])
+thyroid_surgery = st.selectbox("Thyroid Surgery", ["Yes", "No"])
+I131_treatment = st.selectbox("I131 Treatment", ["Yes", "No"])
+query_hypothyroid = st.selectbox("Query Hypothyroid", ["Yes", "No"])
+query_hyperthyroid = st.selectbox("Query Hyperthyroid", ["Yes", "No"])
+lithium = st.selectbox("Lithium", ["Yes", "No"])
+goitre = st.selectbox("Goitre", ["Yes", "No"])
+tumor = st.selectbox("Tumor", ["Yes", "No"])
+hypopituitary = st.selectbox("Hypopituitary", ["Yes", "No"])
+psych = st.selectbox("Psych", ["Yes", "No"])
 
 TSH = st.number_input("TSH", min_value=0.0, max_value=100.0, value=15.0)
 T3 = st.number_input("T3", min_value=0.0, max_value=10.0, value=0.5)
@@ -103,73 +116,39 @@ encoded_data = np.array([
     TSH, T3, TT4, T4U, FTI
 ])
 
-# Feature names (ensure it matches training data)
-feature_names = ["TSH", "T3", "TT4", "T4U", "FTI"]
-
-# Convert numerical values to DataFrame for proper scaling
-user_data_df = pd.DataFrame([encoded_data[16:]], columns=feature_names)
-
 # Scale numerical values
+feature_names = ["TSH", "T3", "TT4", "T4U", "FTI"]
+user_data_df = pd.DataFrame([encoded_data[16:]], columns=feature_names)
 scaled_user_data = scaler.transform(user_data_df)
 
-# Concatenate categorical and scaled numerical features
+# Combine categorical and numerical features
 X = np.concatenate((encoded_data[:16], scaled_user_data.flatten())).reshape(1, -1)
 
-# Mapping display names to actual model keys
+# Model selection
 model_mapping = {
-    'Linear-Regression': ['LinearRegression_model'],
-    'KNN': ['KNN_model'],
-    'Linear-SVC': ['LinearSVC_model'],
-    'RBF-SVM': ['RBFSVM_model'],
-    'Polynomial-SVM': ['PolynomialSVM_model'],
-    'Decision-Tree (Recommended)': ['DecisionTree_model']
+    'Linear-Regression': 'LinearRegression_model',
+    'KNN': 'KNN_model',
+    'Linear-SVC': 'LinearSVC_model',
+    'RBF-SVM': 'RBFSVM_model',
+    'Polynomial-SVM': 'PolynomialSVM_model',
+    'Decision-Tree (Recommended)': 'DecisionTree_model'
 }
 
-# Select model from dropdown
-user_model_input = st.selectbox(
-    "Models",
-    list(model_mapping.keys()),
-    index=5  # Default to 'Decision Tree (Recommended)'
-)
-
-# Retrieve the selected model
-model_name = model_mapping[user_model_input][0]
+user_model_input = st.selectbox("Models", list(model_mapping.keys()), index=5)
+model_name = model_mapping[user_model_input]
 model = model_data['models'][model_name][0]
-
 accuracy_rate = int(model_data['models'][model_name][1] * 100)
 
 st.warning(f"Accuracy rate of above model: {accuracy_rate}%")
 
-# Predict the condition
+# Predict and display result
 if st.button("Predict"):
-    prediction = model.predict(X)  # Model prediction
-    readable_prediction = convert_prediction_to_readable(prediction[0])
-    st.success(f"Prediction: The patient likely has **{readable_prediction}**.")
+    prediction = model.predict(X)  # Get numeric prediction
+    raw_prediction = prediction[0]
 
-# Pre-filled default data for testing
-if st.checkbox("Use Default Thyroid-Affected Data"):
-    st.write("Default data loaded for testing purposes.")
-    default_data = {
-        "Age": 45,
-        "Sex": "Female",
-        "On Thyroxine": "Yes",
-        "Query on Thyroxine": "No",
-        "On Antithyroid Meds": "No",
-        "Sick": "Yes",
-        "Pregnant": "No",
-        "Thyroid Surgery": "Yes",
-        "I131 Treatment": "Yes",
-        "Query Hypothyroid": "Yes",
-        "Query Hyperthyroid": "No",
-        "Lithium": "No",
-        "Goitre": "Yes",
-        "Tumor": "No",
-        "Hypopituitary": "No",
-        "Psych": "Yes",
-        "TSH": 15.0,
-        "T3": 0.5,
-        "TT4": 50.0,
-        "T4U": 0.7,
-        "FTI": 40.0
-    }
-    st.json(default_data)
+    # Convert to character and user-readable label
+    char_label, readable_prediction = convert_prediction_to_readable(raw_prediction)
+
+    # Show results
+    st.write(f"Raw Model Output: {raw_prediction} → Character: **{char_label}**")
+    st.success(f"Final Prediction: **{readable_prediction}**")
